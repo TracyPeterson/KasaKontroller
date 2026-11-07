@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasa Kontroller</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kasa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151515" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+  :root {
+    --bg: #f4f4f1; --card: #ffffff; --text: #1b1b1a; --muted: #6d6d68; --line: #e3e3de;
+    --on: #e8930c; --on-soft: #fdf0da; --off-btn: #ecece8; --danger: #c2410c; --focus: #2563eb;
+    --shadow: 0 1px 2px rgb(0 0 0 / .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151515; --card: #222221; --text: #f0f0ec; --muted: #9a9a94; --line: #333331;
+      --on: #f5a524; --on-soft: #3a2c12; --off-btn: #30302e; --danger: #fb923c; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 16px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 12px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 4px 8px; }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .icon-btn { background: var(--card); width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; box-shadow: var(--shadow); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .spin svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card { background: var(--card); border-radius: 16px; padding: 14px 14px 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
+  .group { display: flex; align-items: center; gap: 12px; }
+  .group .info { flex: 1; min-width: 0; }
+  .group .name { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+  .group .meta { color: var(--muted); font-size: 14px; }
+  .group.all-on .meta { color: var(--on); }
+  .btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .btns button { min-width: 64px; height: 44px; border-radius: 12px; font-weight: 600; background: var(--off-btn); }
+  .btns .on { background: var(--on); color: #1b1400; }
+  .btns button:active { transform: scale(.96); }
+  button:disabled { opacity: .5; cursor: default; }
+
+  details.card { padding: 0; }
+  summary { list-style: none; padding: 14px 16px; font-weight: 600; display: flex; justify-content: space-between; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+  summary .chev { color: var(--muted); transition: transform .2s; }
+  details[open] summary .chev { transform: rotate(90deg); }
+  .dev { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
+  .dev .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .dev .sub { display: block; color: var(--muted); font-size: 13px; }
+  .dev.offline .name { color: var(--muted); }
+
+  .switch { position: relative; width: 52px; height: 32px; border-radius: 16px; background: var(--off-btn); flex-shrink: 0; transition: background .15s; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform .15s; }
+  .switch[aria-checked="true"] { background: var(--on); }
+  .switch[aria-checked="true"]::after { transform: translateX(20px); }
+
+  .pin { text-align: center; padding-top: 18vh; }
+  .pin input {
+    font: inherit; font-size: 28px; letter-spacing: .3em; text-align: center; width: 100%; max-width: 240px;
+    padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text); margin: 16px 0 12px;
+  }
+  .pin .go { background: var(--on); color: #1b1400; font-weight: 600; padding: 12px 32px; border-radius: 12px; }
+  .pin .err { color: var(--danger); min-height: 1.4em; }
+  .empty { color: var(--muted); padding: 8px 4px; }
+
+  .toast {
+    position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); margin: 0 auto; max-width: 528px;
+    background: var(--text); color: var(--bg); padding: 12px 16px; border-radius: 12px; font-size: 15px;
+    opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <section id="pinView" class="pin hidden">
+    <h1>Kasa Kontroller</h1>
+    <form id="pinForm">
+      <input id="pinInput" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN">
+      <div class="err" id="pinErr" role="alert"></div>
+      <button class="go" type="submit">Unlock</button>
+    </form>
+  </section>
+
+  <section id="appView" class="hidden">
+    <header>
+      <h1>Kasa</h1>
+      <button class="icon-btn" id="refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+      </button>
+    </header>
+    <h2>Groups</h2>
+    <div id="groups"></div>
+    <h2>Devices</h2>
+    <details class="card" id="devicesBox">
+      <summary><span id="devCount">All devices</span><span class="chev">›</span></summary>
+      <div id="devices"></div>
+    </details>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+};
+
+let pin = store.get('kasa-pin');
+let state = { devices: [], groups: [] };
+let loading = false;
+
+class AuthError extends Error {}
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { Authorization: 'Bearer ' + pin } });
+  let body = {};
+  try { body = await r.json(); } catch {}
+  if (r.status === 401 || r.status === 429) throw new AuthError(body.error || 'Wrong PIN');
+  if (!r.ok) throw new Error(body.error || `Error ${r.status}`);
+  return body;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function showPin(err) {
+  $('appView').classList.add('hidden');
+  $('pinView').classList.remove('hidden');
+  $('pinErr').textContent = err || '';
+  $('pinInput').value = '';
+  $('pinInput').focus();
+}
+
+function handleError(e) {
+  if (e instanceof AuthError) { pin = null; store.set('kasa-pin', null); showPin(e.message); }
+  else toast(e.message);
+}
+
+async function load(cached) {
+  if (loading) return;
+  loading = true;
+  $('refresh').classList.add('spin');
+  try {
+    state = await api('/api/state' + (cached ? '?cached=1' : ''));
+    $('pinView').classList.add('hidden');
+    $('appView').classList.remove('hidden');
+    render();
+  } catch (e) { handleError(e); throw e; }
+  finally { loading = false; $('refresh').classList.remove('spin'); }
+}
+
+function el(tag, props = {}, ...children) {
+  const n = document.createElement(tag);
+  Object.assign(n, props);
+  for (const c of children) if (c != null) n.append(c);
+  return n;
+}
+
+function describe(devs) {
+  if (!devs.length) return 'No devices';
+  const on = devs.filter((d) => d.on === true).length;
+  const off = devs.filter((d) => d.on === false).length;
+  const unk = devs.length - on - off;
+  const n = `${devs.length} device${devs.length === 1 ? '' : 's'}`;
+  const parts = [];
+  if (on === devs.length) parts.push('all on');
+  else if (off === devs.length) parts.push('all off');
+  else { if (on) parts.push(`${on} on`); if (off) parts.push(`${off} off`); }
+  if (unk) parts.push(`${unk} offline`);
+  return `${n} · ${parts.join(', ')}`;
+}
+
+function render() {
+  const byKey = new Map(state.devices.map((d) => [d.key, d]));
+  const g = $('groups');
+  g.replaceChildren();
+  for (const grp of state.groups) {
+    const devs = grp.keys.map((k) => byKey.get(k)).filter(Boolean);
+    const allOn = devs.length && devs.every((d) => d.on === true);
+    const offBtn = el('button', { textContent: 'Off' });
+    const onBtn = el('button', { textContent: 'On', className: 'on' });
+    offBtn.onclick = () => power(grp.name, false, [offBtn, onBtn]);
+    onBtn.onclick = () => power(grp.name, true, [offBtn, onBtn]);
+    g.append(el('div', { className: 'card group' + (allOn ? ' all-on' : '') },
+      el('div', { className: 'info' },
+        el('div', { className: 'name', textContent: grp.builtin ? 'All devices' : grp.name }),
+        el('div', { className: 'meta', textContent: describe(devs) })),
+      el('div', { className: 'btns' }, offBtn, onBtn)));
+  }
+  if (state.groups.length <= 1) {
+    g.append(el('p', { className: 'empty', textContent: 'Create groups on the computer with: kasa group create <name> <device>…' }));
+  }
+
+  $('devCount').textContent = `All devices (${state.devices.length})`;
+  const d = $('devices');
+  d.replaceChildren();
+  for (const dev of state.devices) {
+    const sw = el('button', { className: 'switch' });
+    sw.setAttribute('role', 'switch');
+    sw.setAttribute('aria-checked', String(dev.on === true));
+    sw.setAttribute('aria-label', dev.name);
+    sw.onclick = () => power(dev.key, dev.on !== true, [sw]);
+    const label = el('span', { className: 'name', textContent: dev.name },
+      dev.online ? null : el('span', { className: 'sub', textContent: 'Offline' }));
+    d.append(el('div', { className: 'dev' + (dev.online ? '' : ' offline') }, label, sw));
+  }
+}
+
+async function power(target, on, buttons) {
+  buttons.forEach((b) => (b.disabled = true));
+  try {
+    const r = await api(`/api/${encodeURIComponent(target)}/${on ? 'on' : 'off'}`, { method: 'POST' });
+    for (const res of r.results) {
+      const dev = state.devices.find((d) => d.key === res.key);
+      if (dev && res.ok) { dev.on = on; dev.online = true; }
+    }
+    if (!r.ok) toast(r.summary);
+    render();
+  } catch (e) { handleError(e); }
+  finally { buttons.forEach((b) => (b.disabled = false)); }
+}
+
+$('pinForm').onsubmit = async (e) => {
+  e.preventDefault();
+  pin = $('pinInput').value.trim();
+  if (!pin) return;
+  try {
+    await load(true);
+    store.set('kasa-pin', pin);
+    load(false).catch(() => {});
+  } catch {}
+};
+$('refresh').onclick = () => load(false).catch(() => {});
+
+// Refresh when the app comes back to the foreground (e.g. reopened from the home screen).
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && pin && !$('appView').classList.contains('hidden')) load(false).catch(() => {});
+});
+
+if (pin) load(true).then(() => load(false)).catch(() => {});
+else showPin();
+</script>
+</body>
+</html>
